@@ -6,6 +6,8 @@
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
 
+**[English](README.md)** | **[中文](README_zh.md)** | **[日本語](docs/gene-base/README_ja.md)** | **[한국어](docs/gene-base/README_ko.md)** | **[Français](docs/gene-base/README_fr.md)**
+
 ---
 
 OpenPanCan is an open-source, microservice-based genomic analysis platform purpose-built for pancreatic ductal adenocarcinoma (PDAC) research and clinical decision support. It processes somatic and germline variant data through a 6-step pipeline — from phenotype extraction to clinical report generation — and provides a full-stack web application for cancer patient management.

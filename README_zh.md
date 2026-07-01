@@ -6,6 +6,8 @@
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
 
+**[English](README.md)** | **[中文](README_zh.md)** | **[日本語](docs/gene-base/README_ja.md)** | **[한국어](docs/gene-base/README_ko.md)** | **[Français](docs/gene-base/README_fr.md)**
+
 ---
 
 OpenPanCan 是一个开源的、基于微服务的胰腺导管腺癌（PDAC）基因组分析平台，专为癌症研究和临床决策支持而构建。它通过 6 步流水线处理体细胞和胚系变异数据——从表型提取到临床报告生成——并提供全栈 Web 应用程序用于癌症患者管理。
