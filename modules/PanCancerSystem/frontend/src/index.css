@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   OpenPanCan - Base Styles
+   ========================================================================= */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 min-h-screen;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+/* =========================================================================
+   Component Styles
+   ========================================================================= */
+
+@layer components {
+  /* Card component */
+  .card {
+    @apply bg-white rounded-xl shadow-medical border border-gray-100
+           transition-shadow duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-card;
+  }
+
+  .card-header {
+    @apply flex items-center justify-between px-6 py-4
+           border-b border-gray-100;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           text-sm font-medium rounded-lg transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white
+           hover:bg-primary-700 focus:ring-primary-500
+           active:bg-primary-800;
+  }
+
+  .btn-secondary {
+    @apply btn bg-white text-gray-700 border border-gray-300
+           hover:bg-gray-50 focus:ring-primary-500
+           active:bg-gray-100;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white
+           hover:bg-red-700 focus:ring-red-500
+           active:bg-red-800;
+  }
+
+  .btn-ghost {
+    @apply btn text-gray-600 hover:bg-gray-100
+           focus:ring-gray-400 active:bg-gray-200;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  /* Badge / Tag */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full
+           text-xs font-medium;
+  }
+
+  .badge-green {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-blue {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+
+  .badge-amber {
+    @apply badge bg-amber-100 text-amber-800;
+  }
+
+  .badge-red {
+    @apply badge bg-red-100 text-red-800;
+  }
+
+  .badge-gray {
+    @apply badge bg-gray-100 text-gray-700;
+  }
+
+  .badge-purple {
+    @apply badge bg-purple-100 text-purple-800;
+  }
+
+  /* Input fields */
+  .input {
+    @apply w-full px-3 py-2 text-sm rounded-lg border border-gray-300
+           bg-white placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-primary-500
+           focus:border-primary-500 transition-colors duration-150;
+  }
+
+  .input-error {
+    @apply input border-red-300 focus:ring-red-500 focus:border-red-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  /* Table */
+  .table-container {
+    @apply w-full overflow-x-auto rounded-lg border border-gray-200;
+  }
+
+  .table {
+    @apply w-full text-sm text-left;
+  }
+
+  .table thead {
+    @apply bg-gray-50 border-b border-gray-200;
+  }
+
+  .table th {
+    @apply px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider;
+  }
+
+  .table td {
+    @apply px-4 py-3 text-gray-700 border-b border-gray-100;
+  }
+
+  .table tbody tr {
+    @apply hover:bg-blue-50/50 transition-colors duration-100;
+  }
+
+  /* Status indicators */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot-green  { @apply status-dot bg-green-500; }
+  .status-dot-amber  { @apply status-dot bg-amber-500; }
+  .status-dot-red    { @apply status-dot bg-red-500; }
+  .status-dot-gray   { @apply status-dot bg-gray-300; }
+  .status-dot-blue   { @apply status-dot bg-blue-500; }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-gray-200 my-4;
+  }
+}
+
+/* =========================================================================
+   Utility Styles
+   ========================================================================= */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

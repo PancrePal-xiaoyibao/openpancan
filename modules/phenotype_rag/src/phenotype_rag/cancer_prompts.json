@@ -1,0 +1,45 @@
+{
+  "system_prompt": "You are a clinical NLP expert specializing in pancreatic cancer phenotype extraction. Extract structured phenotype data from clinical notes. Return JSON only.",
+  "extraction_templates": {
+    "hpo_terms": {
+      "description": "Extract HPO (Human Phenotype Ontology) terms from clinical text for pancreatic cancer phenotypes.",
+      "prompt": "Extract HPO phenotype terms from the following clinical note for a pancreatic cancer patient. For each finding, provide the best-matching HPO ID and term name. Focus on: abdominal pain, jaundice, weight loss, diabetes, pancreatitis, nausea, vomiting, back pain, ascites, fatigue, thrombosis, depression.\n\nClinical Note: {note}\n\nReturn a JSON array of objects with keys: hpo_id, hpo_term, confidence (0-1), evidence_span.",
+      "examples": [
+        {
+          "input": "Patient presents with jaundice, pruritus, and 15lb unintentional weight loss over 3 months. CT shows 3cm pancreatic head mass.",
+          "output": "[{\"hpo_id\": \"HP:0000952\", \"hpo_term\": \"Jaundice\", \"confidence\": 0.95, \"evidence_span\": \"jaundice\"}, {\"hpo_id\": \"HP:0000989\", \"hpo_term\": \"Pruritus\", \"confidence\": 0.85, \"evidence_span\": \"pruritus\"}, {\"hpo_id\": \"HP:0001824\", \"hpo_term\": \"Weight loss\", \"confidence\": 0.90, \"evidence_span\": \"15lb unintentional weight loss\"}]"
+        }
+      ]
+    },
+    "tumor_characteristics": {
+      "description": "Extract tumor-related characteristics: location, size, stage, histology, grade.",
+      "prompt": "Extract tumor characteristics from the clinical note for a pancreatic cancer patient. Identify: tumor location (head/body/tail of pancreas), size in cm, TNM stage if mentioned, histologic type (e.g. ductal adenocarcinoma, IPMN, NET), and grade.\n\nClinical Note: {note}\n\nReturn a JSON object with keys: tumor_location, tumor_size_cm, tnm_stage, histology, grade, confidence (0-1).",
+      "examples": [
+        {
+          "input": "MRI reveals 3.2cm mass in the pancreatic head with SMV involvement. Biopsy confirms pancreatic ductal adenocarcinoma, moderately differentiated.",
+          "output": "{\"tumor_location\": \"head of pancreas\", \"tumor_size_cm\": 3.2, \"tnm_stage\": \"cT3\", \"histology\": \"pancreatic ductal adenocarcinoma\", \"grade\": \"moderately differentiated (G2)\", \"confidence\": 0.92}"
+        }
+      ]
+    },
+    "biomarker_status": {
+      "description": "Extract biomarker and molecular testing results: KRAS, MSI, TMB, HER2, NTRK, dMMR, BRCA1/2, etc.",
+      "prompt": "Extract biomarker and molecular testing results from the clinical note. Look for: KRAS mutation status, MSI status (MSI-H/MSS), TMB value, HER2 status, NTRK fusion status, dMMR status, BRCA1/2 status, TP53 status, SMAD4 status, CDKN2A status.\n\nClinical Note: {note}\n\nReturn a JSON array of objects with keys: biomarker, result, method (IHC/NGS/PCR), confidence (0-1).",
+      "examples": [
+        {
+          "input": "NGS panel shows KRAS G12D mutation, TP53 R175H, MSI-stable, TMB 4.2 mut/Mb. HER2 IHC negative. dMMR testing pending.",
+          "output": "[{\"biomarker\": \"KRAS\", \"result\": \"G12D mutation\", \"method\": \"NGS\", \"confidence\": 0.95}, {\"biomarker\": \"TP53\", \"result\": \"R175H mutation\", \"method\": \"NGS\", \"confidence\": 0.95}, {\"biomarker\": \"MSI\", \"result\": \"MSS (stable)\", \"method\": \"NGS\", \"confidence\": 0.90}, {\"biomarker\": \"TMB\", \"result\": \"4.2 mut/Mb\", \"method\": \"NGS\", \"confidence\": 0.90}, {\"biomarker\": \"HER2\", \"result\": \"negative\", \"method\": \"IHC\", \"confidence\": 0.85}]"
+        }
+      ]
+    },
+    "treatment_history": {
+      "description": "Extract oncologic treatment history: surgeries, chemotherapy regimens, radiation, targeted therapy.",
+      "prompt": "Extract treatment history from the clinical note for a pancreatic cancer patient. Identify: surgical procedures (Whipple, distal pancreatectomy, etc.), chemotherapy regimens (FOLFIRINOX, gemcitabine/nab-paclitaxel, etc.), radiation therapy, targeted therapy, clinical trial participation.\n\nClinical Note: {note}\n\nReturn a JSON array of objects with keys: treatment, type (surgery/chemo/radiation/targeted), date_or_status, confidence (0-1).",
+      "examples": [
+        {
+          "input": "Patient underwent Whipple procedure in 01/2024 followed by 6 cycles of adjuvant FOLFIRINOX completed 07/2024. Currently NED.",
+          "output": "[{\"treatment\": \"Whipple procedure (pancreaticoduodenectomy)\", \"type\": \"surgery\", \"date_or_status\": \"01/2024\", \"confidence\": 0.95}, {\"treatment\": \"FOLFIRINOX (6 cycles)\", \"type\": \"chemo\", \"date_or_status\": \"07/2024\", \"confidence\": 0.95}]"
+        }
+      ]
+    }
+  }
+}

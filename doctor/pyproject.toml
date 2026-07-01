@@ -1,0 +1,9 @@
+[project]
+name = "openpancan-doctor"
+version = "0.1.0"
+description = "OpenPanCan health-check CLI"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

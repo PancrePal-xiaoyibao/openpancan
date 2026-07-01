@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "phenotype-rag"
+version = "0.1.0"
+description = "Cancer phenotype extraction RAG module for OpenPanCan gene analysis"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [
+    { name = "OpenPanCan Team" },
+]
+
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.0",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+rag = [
+    "faiss-cpu>=1.7",
+    "sentence-transformers>=2.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/phenotype_rag"]
+
+[project.scripts]
+phenotype-rag-server = "phenotype_rag.server:main"

@@ -1,0 +1,89 @@
+# =============================================================================
+# OpenPanCan - Docker Compose configuration
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Main application: PanCancerSystem (FastAPI + React + Nginx)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: openpancan-app
+    ports:
+      - "8181:8181"    # Web interface (nginx -> frontend + API proxy)
+      - "8007:8007"    # Direct backend API access
+    volumes:
+      - openpancan_data:/data              # SQLite database persistence
+      - ./backend:/app/backend:ro          # Backend code (read-only in prod)
+    environment:
+      - DATABASE_URL=sqlite:////data/openpancan.db
+      - PANCANCER_SYSTEM_PORT=8007
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - openpancan_net
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL database (uncomment to use instead of SQLite)
+  # ---------------------------------------------------------------------------
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: openpancan-postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_USER=openpancan
+  #     - POSTGRES_PASSWORD=openpancan_secret
+  #     - POSTGRES_DB=openpancan
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U openpancan"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - openpancan_net
+
+  # ---------------------------------------------------------------------------
+  # Redis cache (uncomment to enable caching layer)
+  # ---------------------------------------------------------------------------
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: openpancan-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - openpancan_net
+
+volumes:
+  openpancan_data:
+    driver: local
+  # postgres_data:
+  #   driver: local
+  # redis_data:
+  #   driver: local
+
+networks:
+  openpancan_net:
+    driver: bridge

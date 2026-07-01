@@ -1,0 +1,12 @@
+[project]
+name = "openpancan-pipeline"
+version = "0.1.0"
+description = "OpenPanCan full pipeline runner – orchestrates 6-step pancreatic cancer genomic analysis"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
