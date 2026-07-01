@@ -113,9 +113,15 @@ make report-srv  # 报告服务 (端口 8006)
 make system      # 胰腺癌系统 (端口 8007)
 ```
 
----
+## 📚 文档
 
-## 🙏 致谢
+- **[数据库配置说明](docs/database/current-configuration.md)** — 当前 stub 数据状态 + 环境变量
+- **[数据库接入指南](docs/database/integration-guide.md)** — 真实数据逐步接入教程
+- **[测试方案](docs/testing/test-plan.md)** — 单元测试 + 集成测试策略
+- **[基因库文档](docs/gene-base/)** — 胰腺癌基因数据库（5 种语言）
+- **[开发日志](DEVLOG.md)** — 项目完成情况 + 后续路线图
+- **[API 参考](http://localhost:8000/docs)** — 交互式 API 文档（网关运行时）
+- **[架构设计](docs/design/)** — 系统架构文档
 
 **OpenPanCan 基于 [OpenRare](https://github.com/OpenRare2026/OpenRare) 的架构构建**——这一开创性的开源罕见病基因组分析系统。微服务架构、基于 HTTP 的模块通信模式、异步任务队列设计以及流水线编排方法均源自 OpenRare 优秀的工程基础。我们深深感谢 OpenRare 团队的远见和开源贡献，正是这些启发并促成了本项目的诞生。
 

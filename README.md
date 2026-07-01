@@ -144,10 +144,13 @@ For the curated pancreatic cancer gene database, see: [OpenPanCan Gene Base](htt
 
 ## 📚 Documentation
 
-- [Architecture Design](docs/design/)
-- [API Reference](http://localhost:8000/docs) (when Gateway is running)
-- [Development Guide](docs/dev/)
-- [Module Documentation](modules/vep_service/README.md)
+- **[Database Configuration](docs/database/current-configuration.md)** — Current stub data status + env vars
+- **[Database Integration Guide](docs/database/integration-guide.md)** — Step-by-step real data wiring
+- **[Testing Plan](docs/testing/test-plan.md)** — Unit + integration test strategy
+- **[Gene Base](docs/gene-base/)** — Curated pancreatic cancer gene database (5 languages)
+- **[Development Log](DEVLOG.md)** — Project completion status + roadmap
+- **[API Reference](http://localhost:8000/docs)** — Interactive API docs (when Gateway running)
+- **[Architecture Design](docs/design/)** — System architecture documentation
 
 ---
 
