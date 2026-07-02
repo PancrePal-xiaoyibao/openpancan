@@ -44,6 +44,12 @@ class Settings:
     # External API keys
     ONCOKB_API_KEY: str = os.getenv("ONCOKB_API_KEY", "")
 
+    # ClinicalTrials.gov API
+    CLINICALTRIALS_API_BASE_URL: str = os.getenv(
+        "CLINICALTRIALS_API_BASE_URL",
+        "https://clinicaltrials.gov/api/v2/studies",
+    )
+
     # Server port
     PORT: int = int(os.getenv("PANCANCER_SYSTEM_PORT", "8007"))
 

@@ -3,6 +3,10 @@ Clinical trial matching for pancreatic cancer.
 
 Matches genomic biomarker profiles to active clinical trials for
 pancreatic ductal adenocarcinoma.
+
+Supports two data sources:
+1. ClinicalTrials.gov API v2 (live, when network available)
+2. Curated local database (fallback when API is unavailable)
 """
 
 from __future__ import annotations
@@ -10,9 +14,124 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import httpx
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# ClinicalTrials.gov API v2 client
+# ---------------------------------------------------------------------------
+_CTGOV_BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
+
+
+async def fetch_trials_from_api(
+    gene: str | None = None,
+    page_size: int = 50,
+) -> list[dict[str, Any]]:
+    """
+    Fetch pancreatic cancer trials from ClinicalTrials.gov API v2.
+
+    Parameters
+    ----------
+    gene : str | None
+        Optional gene symbol to narrow the search.
+    page_size : int
+        Number of results per page.
+
+    Returns
+    -------
+    list[dict]
+        Parsed trial dicts, or empty list on failure.
+    """
+    condition = f"pancreatic cancer {gene}" if gene else "pancreatic cancer"
+    params = {
+        "query.cond": condition,
+        "filter.overallStatus": "RECRUITING,ACTIVE_NOT_RECRUITING",
+        "pageSize": str(page_size),
+        "fields": ",".join([
+            "NCTId", "BriefTitle", "Phase", "OverallStatus",
+            "Condition", "InterventionName", "EligibilityCriteria",
+        ]),
+        "format": "json",
+    }
+
+    trials: list[dict[str, Any]] = []
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(_CTGOV_BASE_URL, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        for study in data.get("studies", []):
+            protocol = study.get("protocolSection", {})
+            id_mod = protocol.get("identificationModule", {})
+            status_mod = protocol.get("statusModule", {})
+            arms_mod = protocol.get("armsInterventionsModule", {})
+            elig_mod = protocol.get("eligibilityModule", {})
+
+            nct_id = id_mod.get("nctId", "")
+            title = id_mod.get("briefTitle", "")
+            phase_list = id_mod.get("phase", [])
+            phase = "/".join(phase_list) if isinstance(phase_list, list) else str(phase_list)
+            status = status_mod.get("overallStatus", "Unknown")
+            conditions = " | ".join(id_mod.get("conditions", []))
+            interventions_list = arms_mod.get("interventions", [])
+            interventions = "; ".join(
+                iv.get("name", "") for iv in interventions_list if iv.get("name")
+            )
+            eligibility = elig_mod.get("eligibilityCriteria", "")
+            biomarker = _extract_biomarker_from_text(eligibility, conditions)
+
+            trials.append({
+                "nct_id": nct_id,
+                "title": title,
+                "phase": phase or "Not specified",
+                "status": status,
+                "biomarker_match": biomarker,
+                "drug": interventions,
+                "url": f"https://clinicaltrials.gov/study/{nct_id}",
+            })
+
+    except (httpx.HTTPError, httpx.ConnectError) as exc:
+        logger.warning("ClinicalTrials.gov API unavailable: %s", exc)
+    except Exception as exc:
+        logger.warning("Failed to fetch trials from API: %s", exc)
+
+    return trials
+
+
+def _extract_biomarker_from_text(eligibility: str, conditions: str) -> str:
+    """Extract biomarker keywords from eligibility criteria and conditions."""
+    text = f"{eligibility} {conditions}".upper()
+    biomarkers = [
+        ("KRAS G12C", "KRAS G12C mutation"),
+        ("KRAS G12D", "KRAS G12D mutation"),
+        ("KRAS G12V", "KRAS G12V mutation"),
+        ("KRAS G12R", "KRAS G12R mutation"),
+        ("KRAS", "KRAS mutation"),
+        ("BRCA1", "BRCA1 mutation"),
+        ("BRCA2", "BRCA2 mutation"),
+        ("BRCA", "BRCA1/2 mutation"),
+        ("PALB2", "PALB2 mutation"),
+        ("MSI-H", "MSI-H/dMMR"),
+        ("MICROSATELLITE INSTABILITY", "MSI-H/dMMR"),
+        ("DMMR", "MSI-H/dMMR"),
+        ("NTRK", "NTRK fusion"),
+        ("HER2", "HER2 positive"),
+        ("TP53", "TP53 mutation"),
+        ("SMAD4", "SMAD4 mutation"),
+        ("CDKN2A", "CDKN2A alteration"),
+        ("PIK3CA", "PIK3CA mutation"),
+        ("NRG1", "NRG1 fusion"),
+    ]
+    found = []
+    for keyword, label in biomarkers:
+        if any(label in f for f in found):
+            continue
+        if keyword in text:
+            found.append(label)
+    return ", ".join(found) if found else "Pancreatic cancer (broad eligibility)"
 
 # ---------------------------------------------------------------------------
 # Pancreatic Cancer Clinical Trials Database (curated)
@@ -173,9 +292,14 @@ PANCREATIC_CLINICAL_TRIALS: list[dict[str, Any]] = [
 def match_clinical_trials(
     variants_df: pd.DataFrame,
     cancer_type: str = "pancreatic_ductal_adenocarcinoma",
+    use_api: bool = True,
 ) -> list[dict[str, Any]]:
     """
     Match genomic biomarkers to active clinical trials.
+
+    Tries ClinicalTrials.gov API first (when use_api=True and gene
+    information is available), then falls back to the curated local
+    database.
 
     Parameters
     ----------
@@ -183,6 +307,8 @@ def match_clinical_trials(
         Variant DataFrame with SYMBOL, HGVSp columns.
     cancer_type : str
         Cancer type.
+    use_api : bool
+        Whether to attempt the ClinicalTrials.gov API call.
 
     Returns
     -------

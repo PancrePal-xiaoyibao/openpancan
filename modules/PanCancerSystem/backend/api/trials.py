@@ -1,6 +1,11 @@
-"""Clinical trials matching endpoints."""
+"""Clinical trials matching endpoints — backed by ClinicalTrials.gov API v2.
+
+Falls back to a curated local database when the API is unavailable.
+"""
 
 from __future__ import annotations
+
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -10,6 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.config import settings
 from backend.database.models import CancerPatient, SomaticVariant
 from backend.database.session import get_db
+from backend.services.clinicaltrials_client import ClinicalTrialsClient
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -37,10 +45,10 @@ class TrialMatchResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Reference trial data (would normally come from ClinicalTrials.gov API)
+# Fallback: curated local trial database (used when API is unavailable)
 # ---------------------------------------------------------------------------
 
-_PANCREATIC_CANCER_TRIALS: list[dict[str, str]] = [
+_FALLBACK_TRIALS: list[dict[str, str]] = [
     {
         "nct_id": "NCT03504423",
         "title": "Olaparib as Adjuvant Treatment in Patients With Germline BRCA Mutated Pancreatic Cancer (POLO)",
@@ -180,6 +188,43 @@ _PANCREATIC_CANCER_TRIALS: list[dict[str, str]] = [
 
 
 # ---------------------------------------------------------------------------
+# API-backed matching
+# ---------------------------------------------------------------------------
+
+async def _fetch_api_trials(gene: str | None = None) -> list[dict]:
+    """Try to fetch trials from ClinicalTrials.gov API."""
+    client = ClinicalTrialsClient()
+    try:
+        trials = await client.search_pancreatic_cancer_trials(gene=gene)
+        return trials
+    except Exception:
+        logger.warning("ClinicalTrials.gov API unavailable, using fallback data")
+        return []
+    finally:
+        await client.aclose()
+
+
+def _match_fallback_trials(variant_genes: list[str]) -> list[TrialMatch]:
+    """Match against the curated fallback trial database."""
+    matched: list[TrialMatch] = []
+    for trial in _FALLBACK_TRIALS:
+        trial_genes = [g.strip() for g in trial["genes"].split(",")]
+        hit = [g for g in variant_genes if g in trial_genes]
+        if hit:
+            matched.append(TrialMatch(
+                nct_id=trial["nct_id"],
+                title=trial["title"],
+                phase=trial["phase"],
+                status=trial["status"],
+                conditions=trial["conditions"],
+                interventions=trial["interventions"],
+                match_reason=f"Gene match: {', '.join(hit)}",
+                url=f"https://clinicaltrials.gov/study/{trial['nct_id']}",
+            ))
+    return matched
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
@@ -187,6 +232,7 @@ _PANCREATIC_CANCER_TRIALS: list[dict[str, str]] = [
 @router.get("/match/{patient_id}", response_model=TrialMatchResponse, tags=["trials"])
 async def match_trials(
     patient_id: int,
+    use_api: bool = Query(default=True, description="Use ClinicalTrials.gov API (fallback to local if unavailable)"),
     limit: int = Query(default=20, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ) -> TrialMatchResponse:
@@ -212,25 +258,31 @@ async def match_trials(
             if "MSI-H" not in variant_genes:
                 variant_genes.append("MSI-H")
 
-    # Match trials
     matched_trials: list[TrialMatch] = []
-    for trial in _PANCREATIC_CANCER_TRIALS:
-        trial_genes = [g.strip() for g in trial["genes"].split(",")]
-        matched_genes = [g for g in variant_genes if g in trial_genes]
 
-        if matched_genes:
-            matched_trials.append(TrialMatch(
-                nct_id=trial["nct_id"],
-                title=trial["title"],
-                phase=trial["phase"],
-                status=trial["status"],
-                conditions=trial["conditions"],
-                interventions=trial["interventions"],
-                match_reason=f"Gene match: {', '.join(matched_genes)}",
-                url=f"https://clinicaltrials.gov/study/{trial['nct_id']}",
-            ))
+    # Try API first
+    if use_api and variant_genes:
+        for gene in variant_genes:
+            api_trials = await _fetch_api_trials(gene=gene)
+            for t in api_trials:
+                # Deduplicate by nct_id
+                if not any(m.nct_id == t["nct_id"] for m in matched_trials):
+                    matched_trials.append(TrialMatch(
+                        nct_id=t["nct_id"],
+                        title=t["title"],
+                        phase=t.get("phase", ""),
+                        status=t.get("status", ""),
+                        conditions=t.get("conditions", ""),
+                        interventions=t.get("interventions", ""),
+                        match_reason=t.get("biomarker_match", f"Gene: {gene}"),
+                        url=t.get("url", f"https://clinicaltrials.gov/study/{t['nct_id']}"),
+                    ))
 
-    # Add general pancreatic cancer trials even without gene match
+    # Fallback to local database if API returned nothing
+    if not matched_trials:
+        matched_trials = _match_fallback_trials(variant_genes)
+
+    # General pancreatic cancer trial if no matches
     if not matched_trials:
         matched_trials.append(TrialMatch(
             nct_id="NCT04166721",
@@ -254,24 +306,42 @@ async def match_trials(
 @router.get("/search", response_model=list[TrialMatch], tags=["trials"])
 async def search_trials(
     gene: str = Query(..., description="Gene symbol to search for"),
+    use_api: bool = Query(default=True, description="Use ClinicalTrials.gov API"),
     limit: int = Query(default=20, ge=1, le=50),
 ) -> list[TrialMatch]:
     """Search clinical trials by gene."""
     matched: list[TrialMatch] = []
-    gene_upper = gene.upper()
 
-    for trial in _PANCREATIC_CANCER_TRIALS:
-        trial_genes = [g.strip().upper() for g in trial["genes"].split(",")]
-        if gene_upper in trial_genes:
+    # Try API first
+    if use_api:
+        api_trials = await _fetch_api_trials(gene=gene)
+        for t in api_trials:
             matched.append(TrialMatch(
-                nct_id=trial["nct_id"],
-                title=trial["title"],
-                phase=trial["phase"],
-                status=trial["status"],
-                conditions=trial["conditions"],
-                interventions=trial["interventions"],
-                match_reason=f"Gene match: {gene}",
-                url=f"https://clinicaltrials.gov/study/{trial['nct_id']}",
+                nct_id=t["nct_id"],
+                title=t["title"],
+                phase=t.get("phase", ""),
+                status=t.get("status", ""),
+                conditions=t.get("conditions", ""),
+                interventions=t.get("interventions", ""),
+                match_reason=t.get("biomarker_match", f"Gene: {gene}"),
+                url=t.get("url", f"https://clinicaltrials.gov/study/{t['nct_id']}"),
             ))
+
+    # Fallback to local
+    if not matched:
+        gene_upper = gene.upper()
+        for trial in _FALLBACK_TRIALS:
+            trial_genes = [g.strip().upper() for g in trial["genes"].split(",")]
+            if gene_upper in trial_genes:
+                matched.append(TrialMatch(
+                    nct_id=trial["nct_id"],
+                    title=trial["title"],
+                    phase=trial["phase"],
+                    status=trial["status"],
+                    conditions=trial["conditions"],
+                    interventions=trial["interventions"],
+                    match_reason=f"Gene match: {gene}",
+                    url=f"https://clinicaltrials.gov/study/{trial['nct_id']}",
+                ))
 
     return matched[:limit]
